@@ -1,0 +1,127 @@
+#!/usr/bin/ruby
+
+require 'fileutils'
+require 'optparse'
+require 'stringio'
+
+require 'rubygems'
+require 'rainbow'
+
+class CleanWS
+  include FileUtils
+
+  class NullIO
+    def puts(*a)
+    end
+  end
+
+  DIRTY = "DIRTY".foreground( :red )
+  CLEAN = "CLEAN".foreground( :green )
+  WROTE = "WROTE".foreground( :yellow )
+
+  def main( args )
+
+    log = $stdout
+    dirty = false
+    do_write = false
+    verbose = false
+    show_clean = true
+    fout = NullIO.new
+    git_ls = false
+
+    opts = OptionParser.new do |opts|
+      opts.banner = "Usage: cleanws [-w | -t] file ..."
+      opts.on( "-w", "--write", "Update file in place") do
+        do_write = true
+      end
+      opts.on( "-v", "--verbose", "Output filtered files and verbose logging.") do
+        fout = $stdout
+        log = $stderr
+        verbose = true
+      end
+      opts.on( "-d", "--dirty", "Show dirty status only.") do
+        show_clean = false
+      end
+      opts.on( "-g", "--git-updates",
+               "Get input files from modified/untracked git working tree" ) do
+        git_ls = "-m -o --exclude-standard"
+      end
+      opts.on( "-G", "--git-cached",
+               "Get input files from tracked/cached git files" ) do
+        git_ls = "-c"
+      end
+    end.parse!( args )
+
+    if git_ls
+      gcmd = [ 'git ls-files', git_ls, args ].flatten.join(' ')
+      log.puts gcmd if verbose
+      args = IO.popen( gcmd ).readlines.map { |f| f.strip }
+      args.reject! { |f| f =~ /\.ws(~|\.tmp)$/ }
+    end
+
+    args.each do |ifile|
+      log.puts( "CLEAN f: #{ifile} :::" ) if verbose
+      ofile = ifile + ".ws.tmp"
+      fout = open( ofile, 'w' ) if do_write
+      chg, blank, tabs, total =
+        open( ifile, 'r' ) { |fin| filter( fin, fout ) }
+      fout.close if do_write
+      change = ( ( chg + blank + tabs ) > 0 )
+      dirty |= change
+
+      lfile = ifile.dup.foreground( change ?
+                                    ( do_write ? :yellow : :red ) :
+                                    :green )
+      log.puts( "%-5s ws: %2d blnk: %2d tabs: %2d in: %3d f: %s" %
+                [ change ? ( do_write ? WROTE : DIRTY ) : CLEAN,
+                  chg, blank, tabs, total, lfile ] ) if change || show_clean
+
+      if do_write
+        if change
+          cp( ifile, ifile + ".ws~", :preserve => true )
+          mv( ofile, ifile, :force => true )
+        else
+          rm( ofile )
+        end
+      end
+
+    end
+
+    exit( dirty ? 1 : 0 )
+  end
+
+  def filter( fin, fout )
+    dropped_lines = 0
+    changed_lines = 0
+    tab_lines = 0
+    empty_lines = 0
+    total = 0
+    while( line = fin.gets )
+      total += 1
+      lstr = line.rstrip
+
+      if line != ( lstr + "\n" )
+        changed_lines += 1
+      end
+
+      if lstr.empty?
+        empty_lines += 1
+      else
+        if empty_lines > 0
+          fout.puts
+          dropped_lines += empty_lines - 1
+          empty_lines = 0
+        end
+        tab_lines += 1 if lstr =~ /\t/
+        # line.gsub!( /\t/, "    " )
+        fout.puts lstr
+      end
+    end
+    dropped_lines += empty_lines
+    [ changed_lines, dropped_lines, tab_lines, total ]
+  end
+
+
+end
+
+CleanWS.new.main( ARGV )
