@@ -121,7 +121,6 @@ class CleanWS
     [ changed_lines, dropped_lines, tab_lines, total ]
   end
 
-
 end
 
 CleanWS.new.main( ARGV )
