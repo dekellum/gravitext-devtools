@@ -1,4 +1,19 @@
 #!/usr/bin/ruby
+#--
+# Copyright (C) 2008-2009 David Kellum
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License.  You
+# may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.  See the License for the specific language governing
+# permissions and limitations under the License.
+#++
 
 require 'fileutils'
 require 'optparse'
@@ -15,81 +30,132 @@ class CleanWS
     end
   end
 
-  DIRTY = "DIRTY".foreground( :red )
-  CLEAN = "CLEAN".foreground( :green )
-  WROTE = "WROTE".foreground( :yellow )
+  CMAP = {}
 
-  def main( args )
+  def self.mk_tag( name, color )
+    tag = name.foreground( color )
+    CMAP[ tag ] = color
+    tag
+  end
 
-    log = $stdout
-    dirty = false
-    do_write = false
-    verbose = false
-    show_clean = true
-    fout = NullIO.new
-    git_ls = false
+  CLEAN = mk_tag( "CLEAN", :green )
+  DIRTY = mk_tag( "DIRTY", :red )
+  WROTE = mk_tag( "WROTE", :red )
+  FIXED = mk_tag( "FIXED", :yellow )
 
+  def initialize
+    @do_write = false
+    @verbose = false
+    @show_clean = true
+    @fout = NullIO.new
+    @git_ls = false
+    @log = $stdout
+    @llines = 0
+  end
+
+  def parse_flags( args )
     opts = OptionParser.new do |opts|
       opts.banner = "Usage: cleanws [-w | -t] file ..."
       opts.on( "-w", "--write", "Update file in place") do
-        do_write = true
+        @do_write = true
       end
-      opts.on( "-v", "--verbose", "Output filtered files and verbose logging.") do
-        fout = $stdout
+      opts.on( "-v", "--verbose",
+               "Output filtered files and verbose logging.") do
+        @fout = $stdout
         log = $stderr
-        verbose = true
+        @verbose = true
       end
       opts.on( "-d", "--dirty", "Show dirty status only.") do
-        show_clean = false
+        @show_clean = false
       end
       opts.on( "-g", "--git-updates",
                "Get input files from modified/untracked git working tree" ) do
-        git_ls = "-m -o --exclude-standard"
+        @git_ls = "-m -o --exclude-standard"
       end
       opts.on( "-G", "--git-cached",
                "Get input files from tracked/cached git files" ) do
-        git_ls = "-c"
+        @git_ls = "-c"
       end
-    end.parse!( args )
+    end
+    opts.parse!( args )
+  end
 
-    if git_ls
-      gcmd = [ 'git ls-files', git_ls, args ].flatten.join(' ')
-      log.puts gcmd if verbose
+  def main( args )
+
+    parse_flags( args )
+
+    if @git_ls
+      gcmd = [ 'git ls-files', @git_ls, args ].flatten.join(' ')
+      @log.puts gcmd if @verbose
       args = IO.popen( gcmd ).readlines.map { |f| f.strip }
       args.reject! { |f| f =~ /\.ws(~|\.tmp)$/ }
     end
 
+    any_dirty = false
+
     args.each do |ifile|
-      log.puts( "CLEAN f: #{ifile} :::" ) if verbose
-      ofile = ifile + ".ws.tmp"
-      fout = open( ofile, 'w' ) if do_write
-      chg, blank, tabs, total =
-        open( ifile, 'r' ) { |fin| filter( fin, fout ) }
-      fout.close if do_write
-      change = ( ( chg + blank + tabs ) > 0 )
-      dirty |= change
-
-      lfile = ifile.dup.foreground( change ?
-                                    ( do_write ? :yellow : :red ) :
-                                    :green )
-      log.puts( "%-5s ws: %2d blnk: %2d tabs: %2d in: %3d f: %s" %
-                [ change ? ( do_write ? WROTE : DIRTY ) : CLEAN,
-                  chg, blank, tabs, total, lfile ] ) if change || show_clean
-
-      if do_write
-        if change
-          cp( ifile, ifile + ".ws~", :preserve => true )
-          mv( ofile, ifile, :force => true )
-        else
-          rm( ofile )
-        end
-      end
-
+      d = process( ifile )
+      any_dirty ||= d
     end
 
-    exit( dirty ? 1 : 0 )
+    header if @llines > 20
+    exit( any_dirty ? 1 : 0 )
   end
 
+  def header
+    @log.puts( "%5s %4s %4s %4s %4s %s" %
+               [ "", "WS", "BLNK", "TABS", "LINE", "FILE" ] )
+  end
+
+  def process( ifile )
+    @log.puts( "CLEAN f: #{ifile} :::" ) if @verbose
+
+    ofile = ifile + ".ws.tmp" # only with do_write
+
+    fout = @do_write ? open( ofile, 'w' ) : @fout
+
+    chg, blank, tabs, total = open( ifile, 'r' ) do |fin|
+      filter( fin, fout )
+    end
+
+    fout.close if @do_write
+
+    change = ( ( chg + blank ) > 0 )
+    dirty  = change || ( tabs > 0 )
+
+    state = if dirty
+              if @do_write
+                ( tabs == 0 ) ? FIXED : WROTE
+              else
+                DIRTY
+              end
+            else
+              CLEAN
+            end
+
+    if dirty || @show_clean
+      header if @llines == 0
+      @log.puts( "%s %4d %4d %4d %4d %s" %
+                 [ state, chg, blank, tabs, total,
+                   ifile.dup.foreground( CMAP[ state ] ) ] )
+      @llines += 1
+    end
+
+    if @do_write
+      if change
+        cp( ifile, ifile + ".ws~", :preserve => true )
+        cp( ofile, ifile )
+      end
+      rm( ofile )
+    end
+    dirty
+  end
+
+  # Filters files fin to fout
+  # All whitespace at end of line is replaced with '\n'
+  # Only one blank line allowed consecutively.
+  # Last non-empty line is terminated with '\n'
+  # No trailing additional lines in file.
   def filter( fin, fout )
     dropped_lines = 0
     changed_lines = 0
@@ -100,9 +166,7 @@ class CleanWS
       total += 1
       lstr = line.rstrip
 
-      if line != ( lstr + "\n" )
-        changed_lines += 1
-      end
+      changed_lines += 1 if ( line != ( lstr + "\n" ) )
 
       if lstr.empty?
         empty_lines += 1
