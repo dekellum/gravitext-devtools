@@ -42,6 +42,7 @@ class CleanWS
   DIRTY = mk_tag( "DIRTY", :red )
   WROTE = mk_tag( "WROTE", :red )
   FIXED = mk_tag( "FIXED", :yellow )
+  NOTXT = mk_tag( "NOTXT", :blue )
 
   def initialize
     @do_write = false
@@ -91,10 +92,14 @@ class CleanWS
       args.reject! { |f| f =~ /\.ws(~|\.tmp)$/ }
     end
 
+    args.sort!
+
+    ftypes = check_file_types( args )
+
     any_dirty = false
 
-    args.each do |ifile|
-      d = process( ifile )
+    ftypes.each do |ifile, type|
+      d = process( ifile, type )
       any_dirty ||= d
     end
 
@@ -102,23 +107,53 @@ class CleanWS
     exit( any_dirty ? 1 : 0 )
   end
 
+  def check_file_types( files )
+    fmap = {}
+    # 1: keep only regular files in fmap
+    files.each do |f|
+       if File.file?( f ) && ! File.symlink?( f )
+         fmap[f] = :file
+       end
+    end
+
+    # 2: Use UNIX 'file' command to test for text files
+    unless fmap.empty?
+      IO.popen( "file " + fmap.keys.join( ' ' ) ) do |outf|
+        outf.each do |line|
+          # <filename>:   <type string with /text/ or not>
+          if line =~ /^(.+):(.+)$/
+            fmap[ $1 ] = ( ( $2 =~ /text/ ) ? :text : :binary )
+          end
+        end
+      end
+    end
+
+    fmap.sort
+  end
+
   def header
     @log.puts( "%5s %4s %4s %4s %4s %s" %
                [ "", "WS", "BLNK", "TABS", "LINE", "FILE" ] )
   end
 
-  def process( ifile )
+  def process( ifile, type )
     @log.puts( "CLEAN f: #{ifile} :::" ) if @verbose
 
-    ofile = ifile + ".ws.tmp" # only with do_write
+    chg, blank, tabs, total =
+      if type == :text
+        ofile = ifile + ".ws.tmp" # only with do_write
 
-    fout = @do_write ? open( ofile, 'w' ) : @fout
+        fout = @do_write ? open( ofile, 'w' ) : @fout
 
-    chg, blank, tabs, total = open( ifile, 'r' ) do |fin|
-      filter( fin, fout )
-    end
+        result = open( ifile, 'r' ) do |fin|
+          filter( fin, fout )
+        end
 
-    fout.close if @do_write
+        fout.close if @do_write
+        result
+      else
+        [0,0,0,0]
+      end
 
     change = ( ( chg + blank ) > 0 )
     dirty  = change || ( tabs > 0 )
@@ -130,7 +165,7 @@ class CleanWS
                 DIRTY
               end
             else
-              CLEAN
+              ( type == :text ) ? CLEAN : NOTXT
             end
 
     if dirty || @show_clean
