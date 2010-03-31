@@ -6,13 +6,13 @@ include FileUtils
 HDIR = File.dirname( __FILE__ )
 
 for fname in ARGV
-  if system( %q{egrep -q '^[ \*#]+Copyright \(C\)' } + fname  )
+  if system( %q{egrep -q '^[ \*#]+Copyright ' } + fname  )
     puts "#{fname} already has Copyright header."
   else
     hfile = HDIR + '/' +
-      if fname =~ /\.java$/ 
+      if fname =~ /\.java$/
         'header.java'
-      elsif fname =~ /\.xml$/ 
+      elsif fname =~ /\.xml$/
         'header.xml'
       else
         'header.rb'
@@ -23,4 +23,3 @@ for fname in ARGV
     puts "#{fname} : header applied."
   end
 end
-
