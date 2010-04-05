@@ -139,9 +139,11 @@ class CleanWS
   def process( ifile, type )
     @log.puts( "CLEAN f: #{ifile} :::" ) if @verbose
 
+    ofile = nil
+
     chg, blank, tabs, total =
       if type == :text
-        ofile = ifile + ".ws.tmp" # only with do_write
+        ofile = ifile + ".ws.tmp"
 
         fout = @do_write ? open( ofile, 'w' ) : @fout
 
@@ -176,7 +178,7 @@ class CleanWS
       @llines += 1
     end
 
-    if @do_write
+    if @do_write && ofile
       if change
         cp( ifile, ifile + ".ws~", :preserve => true )
         cp( ofile, ifile )
