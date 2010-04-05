@@ -2,9 +2,9 @@ History.rdoc
 Manifest.txt
 README.rdoc
 Rakefile
+bin/gt-cleanws
+bin/gt-header
 bin/gt-manifest
-bin/lheader
-bin/wsclean
 lib/gravitext-devtools/base.rb
 templates/format/format.java
 templates/format/format.rb
