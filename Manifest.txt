@@ -1,0 +1,14 @@
+History.rdoc
+Manifest.txt
+README.rdoc
+Rakefile
+bin/gt-manifest
+bin/lheader
+bin/wsclean
+lib/gravitext-devtools/base.rb
+templates/format/format.java
+templates/format/format.rb
+templates/format/format.txt
+templates/format/format.xml
+templates/license/apache
+templates/license/bsd
