@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'fileutils'
+
+class Manifest
+  include FileUtils
+
+  #Array<Regexp|Proc|String>
+  attr_reader :exclusions
+
+  # Set true if Manifest.txt should be written instead of Manifest.txt.
+  # (Default: true if Manifest.static exists)
+  #Boolean
+  attr_accessor :static
+
+  def initialize
+    @git_ls_args = nil
+    @verbose = false
+
+    @exclusions = [ %r{(^|/).gitignore$},
+                    %r{(^|/).gt-config$},
+                    %r{(^|/)src(/|$)},
+                    'lib/**/*.jar',
+                    'Manifest.static' ]
+
+    @static = File.exist?( 'Manifest.static' )
+  end
+
+  def parse_flags( args = ARGV )
+    opts = OptionParser.new do |opts|
+      opts.banner = "Usage:  gt-manifest [dir|file] ..."
+      opts.on( "-v", "--verbose",
+               "Output full manifest details" ) do
+        @verbose = true
+      end
+      opts.on( "-g", "--git-updates",
+               "Include files from modified/untracked git working tree" ) do
+        @git_ls_args = %w[ -c -m -o --exclude-standard ]
+      end
+      opts.on( "-s", "--static",
+               "Write to Manifest.static instead of Manifest.txt" ) do
+        @static = true
+      end
+    end
+    opts.parse!( args )
+  end
+
+  def run( args = ARGV )
+
+    parse_flags( args )
+
+    gcmd = [ 'git ls-files', @git_ls_args, args ].flatten.compact.join( ' ' )
+    puts gcmd if @verbose
+    files = IO.popen( gcmd ).readlines.map { |f| f.strip }
+    files << 'Manifest.txt' unless @static
+
+    files.reject! { |f| exclude?( f ) }
+    files.map! { |f| File.split( f ) }
+    files.sort!
+    files.map! { |f| File.join( f ).gsub( %r{^\./}, '' ) }
+    files.uniq!
+    open( 'Manifest.' + ( @static ? 'static' : 'txt' ), 'w' ) do |out|
+      files.each do |fname|
+        puts fname if @verbose
+        out.puts fname
+      end
+    end
+  end
+
+  def exclude?( fname )
+    @exclusions.any? do |ex|
+      case ex
+      when Proc
+        ex.call(fname)
+      when Regexp
+        fname =~ ex
+      when /[*?]/
+        File.fnmatch?( ex, fname, File::FNM_PATHNAME )
+      else
+        fname == ex
+      end
+    end
+  end
+
+end
+
+Manifest.new.run
