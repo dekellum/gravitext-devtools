@@ -51,7 +51,7 @@ class Manifest
     parse_flags( args )
 
     gcmd = [ 'git ls-files', @git_ls_args, args ].flatten.compact.join( ' ' )
-    puts gcmd if @verbose
+    puts( ">> #{gcmd}" ) if @verbose
     files = IO.popen( gcmd ).readlines.map { |f| f.strip }
     files << 'Manifest.txt' unless @static
 
