@@ -6,12 +6,12 @@ require 'fileutils'
 class Manifest
   include FileUtils
 
-  #Array<Regexp|Proc|String>
+  # Array<Regexp|Proc|String>
   attr_reader :exclusions
 
   # Set true if Manifest.txt should be written instead of Manifest.txt.
   # (Default: true if Manifest.static exists)
-  #Boolean
+  # Boolean
   attr_accessor :static
 
   def initialize
@@ -56,16 +56,67 @@ class Manifest
     files << 'Manifest.txt' unless @static
 
     files.reject! { |f| exclude?( f ) }
-    files.map! { |f| File.split( f ) }
-    files.sort!
-    files.map! { |f| File.join( f ).gsub( %r{^\./}, '' ) }
+    files.map! do |f|
+      f = f.split( File::SEPARATOR )
+      f.shift if f[0] == '.'
+      f
+    end
     files.uniq!
+    files = sort( files )
+    files.map! { |f| File.join( f ) }
+
     open( 'Manifest.' + ( @static ? 'static' : 'txt' ), 'w' ) do |out|
       files.each do |fname|
         puts fname if @verbose
         out.puts fname
       end
     end
+  end
+
+  def sort( files )
+
+    files = files.sort do |a,b|
+      i = 0
+      o = 0
+      while( o == 0 )
+        o = -1 if ( a.length == i+1 ) && a.length < b.length
+        o =  1 if ( b.length == i+1 ) && a.length > b.length
+        o = a[i] <=> b[i] if o == 0
+        i += 1
+      end
+      o
+    end
+
+    files = priority_to_base( files )
+
+    files
+  end
+
+  # Move up any foo/base.rb or version.rb files. By convention
+  # (originally based on rdoc issues) these come before a foo.rb, i.e:
+  #
+  #   lib/foo/base.rb
+  #   lib/foo.rb
+  #   lib/foo/other.rb
+  #
+  def priority_to_base( files )
+
+    bases, nfiles = files.partition { |f| f.last =~ /^(base|version)\.rb$/ }
+
+    bases.each do |base|
+      key = base[0..-2]
+      key[-1] += ".rb"
+      nfiles.each_with_index do |file, i|
+        if file == key
+          nfiles.insert( i, base )
+          base = nil
+          break
+        end
+      end
+      return files if base
+    end
+
+    nfiles
   end
 
   def exclude?( fname )

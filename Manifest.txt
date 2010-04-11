@@ -6,6 +6,7 @@ bin/gt-cleanws
 bin/gt-header
 bin/gt-manifest
 lib/gravitext-devtools/base.rb
+lib/gravitext-devtools.rb
 templates/format/format.java
 templates/format/format.rb
 templates/format/format.txt
