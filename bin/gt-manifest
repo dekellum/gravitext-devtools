@@ -1,13 +1,15 @@
 #!/usr/bin/env ruby
 
+$LOAD_PATH.unshift File.join( File.dirname( __FILE__ ), "..", "lib" )
+
+require 'gravitext-devtools'
+
 require 'optparse'
 require 'fileutils'
 
 class Manifest
   include FileUtils
-
-  # Array<Regexp|Proc|String>
-  attr_reader :exclusions
+  include Gravitext::DevTools
 
   # Set true if Manifest.txt should be written instead of Manifest.txt.
   # (Default: true if Manifest.static exists)
@@ -15,47 +17,42 @@ class Manifest
   attr_accessor :static
 
   def initialize
-    @git_ls_args = nil
     @verbose = false
-
-    @exclusions = [ %r{(^|/).gitignore$},
-                    %r{(^|/).gt-config$},
-                    %r{(^|/)src(/|$)},
-                    'lib/**/*.jar',
-                    'Manifest.static' ]
-
     @static = File.exist?( 'Manifest.static' )
+
+    @git_lister = GitFileLister.new
+
+    @git_lister.exclusions = [ %r{(^|/).gitignore$},
+                               %r{(^|/).gt-config$},
+                               %r{(^|/)src(/|$)},
+                               'lib/**/*.jar',
+                               'Manifest.static' ]
   end
 
-  def parse_flags( args = ARGV )
-    opts = OptionParser.new do |opts|
+  def parse_options( args = ARGV )
+
+    @git_lister.parse_options( args ) do |opts|
       opts.banner = "Usage:  gt-manifest [dir|file] ..."
       opts.on( "-v", "--verbose",
                "Output full manifest details" ) do
         @verbose = true
-      end
-      opts.on( "-g", "--git-updates",
-               "Include files from modified/untracked git working tree" ) do
-        @git_ls_args = %w[ -c -m -o --exclude-standard ]
       end
       opts.on( "-s", "--static",
                "Write to Manifest.static instead of Manifest.txt" ) do
         @static = true
       end
     end
-    opts.parse!( args )
   end
 
   def run( args = ARGV )
 
-    parse_flags( args )
+    parse_options( args )
 
-    gcmd = [ 'git ls-files', @git_ls_args, args ].flatten.compact.join( ' ' )
-    puts( ">> #{gcmd}" ) if @verbose
-    files = IO.popen( gcmd ).readlines.map { |f| f.strip }
-    files << 'Manifest.txt' unless @static
+    @git_lister.extra_files << 'Manifest.txt' unless @static
+    @git_lister.git_flags   << '-c' # Include cached by default
 
-    files.reject! { |f| exclude?( f ) }
+    files = @git_lister.files
+
     files.map! do |f|
       f = f.split( File::SEPARATOR )
       f.shift if f[0] == '.'
@@ -117,21 +114,6 @@ class Manifest
     end
 
     nfiles
-  end
-
-  def exclude?( fname )
-    @exclusions.any? do |ex|
-      case ex
-      when Proc
-        ex.call(fname)
-      when Regexp
-        fname =~ ex
-      when /[*?]/
-        File.fnmatch?( ex, fname, File::FNM_PATHNAME )
-      else
-        fname == ex
-      end
-    end
   end
 
 end
