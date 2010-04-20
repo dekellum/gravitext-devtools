@@ -62,36 +62,12 @@ module Gravitext
 
         files = @git_lister.files
 
-        puts cached_header( :rb )
-        exit
+        # puts cached_header( :rb )
+        # exit
+
         files.each do |fname|
-          process( fname )
+          HeaderProcessor.new( fname ).process
         end
-
-        # for fname in files
-        #   if system( %q{egrep -q '^[ \*#]+Copyright ' } + fname  )
-        #     puts "#{fname} already has Copyright header."
-        #   else
-        #     hfile = HDIR + '/' +
-        #       if fname =~ /\.java$/
-        #         'header.java'
-        #       elsif fname =~ /\.xml$/
-        #         'header.xml'
-        #       else
-        #         'header.rb'
-        #       end
-        #     #mv( fname, "#{fname}.orig" )
-        #     #system( "cat #{hfile} #{fname}.orig > #{fname}" )
-        #     #rm( "#{fname}.orig" )
-        #     puts "#{fname} : header applied."
-        #   end
-        # end
-
-      end
-
-      def process( fname )
-        flines = IO.readlines( fname )
-        
       end
 
       TDIR = File.expand_path( File.join( File.dirname( __FILE__ ),
@@ -104,7 +80,7 @@ module Gravitext
       def gen_header( format )
         efile = File.join( TDIR, 'format', "format.#{format}" )
         license = cached_license
-        ERB.new( IO.read( efile ), nil, '%>' ).result( binding )
+        expand( IO.read( efile ), binding )
       end
 
       def cached_license
@@ -117,12 +93,109 @@ module Gravitext
                    else
                      license.to_s
                    end
-        ERB.new( template, nil, '%>' ).result( binding )
+        expand( template, binding )
+      end
+
+      def expand( template, bnd )
+        ERB.new( template, nil, '%' ).result( bnd ).map { |l| l.rstrip }
       end
 
       def years
         @years ||= [ inception, Time.now.year ].uniq.join( '-' )
       end
     end
+
+    class HeaderProcessor
+      def initialize( fname )
+        @cpos = 0
+        @fname = fname
+        @format = case fname
+                  when /\.java$/
+                    :java
+                  when /\.xml$/
+                    :xml
+                  when /\.rb$/, /(.*\/)?[^.]+/
+                    :rb
+                  # /\.rdoc$/
+                  else
+                    :txt
+                  end
+        @state = :first
+      end
+
+      def process
+        @lines = IO.readlines( @fname )
+        unless @lines.empty?
+          scan_prolog
+          if find_copyright
+          else
+            insert_header
+            rewrite_file
+          end
+        end
+      end
+
+      def rewrite_file
+        open( @fname, "w" ) { |fout| fout.puts( @lines ) }
+      end
+
+      def scan_prolog
+        if @lines[0] =~ /^#!([^ ]+)/
+
+          @format = :rb if $1 =~ /ruby$/
+          @cpos = 1
+        end
+
+        @lines.each_index do |i|
+          line = @lines[i]
+          if line =~ /^#.*-\*-\s*ruby\s*-\*-/
+            @format = :rb
+            @cpos = i+1
+            break
+          else
+            break if line !~ /^\s*#/
+          end
+        end
+
+      end
+
+      def find_copyright
+        @cline = nil
+        @lines.each_index do |i|
+          line = @lines[i]
+          case @format
+          when :rb
+            case line
+            when /^#\s+Copyright/
+              @cline = i
+              break
+            when /^\s*[^#]/
+              break
+            end
+          when :java
+            case line
+            when /^\*\s+Copyright/
+              @cline = i
+              break
+            when /^\s*[^\*]/
+              break
+            end
+          else
+            if line =~ /Copyright \([cC]\)/
+              @cline = i
+              break
+            end
+          end
+        end
+        @cline
+      end
+
+      def insert_header
+        header = HeaderWriter.instance.cached_header( @format )
+        @lines.insert( @cpos, *header )
+      end
+
+    end
+
   end
 end
