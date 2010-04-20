@@ -210,7 +210,7 @@ module Gravitext
           @cpos = 1
         end
 
-        if @lines[0] =~ /^<?xml/
+        if @lines[0] =~ /^<\?xml/
           @format = :xml
           @cpos = 1
         end
