@@ -2,6 +2,8 @@
 require 'gravitext-devtools'
 require 'fileutils'
 require 'erb'
+require 'rubygems'
+require 'rainbow'
 
 module Gravitext
   module DevTools
@@ -29,6 +31,7 @@ module Gravitext
 
       def initialize
         @verbose = false
+        @do_write = false
         @license = :apache
         @inception = Time.now.year
 
@@ -56,6 +59,11 @@ module Gravitext
                    "Output full manifest details" ) do
             @verbose = true
           end
+          opts.on( "-w", "--write",
+                   "Write headers if needed" ) do
+            @do_write = true
+          end
+
         end
       end
 
@@ -74,7 +82,7 @@ module Gravitext
         # exit
 
         files.each do |fname|
-          HeaderProcessor.new( fname ).process
+          HeaderProcessor.new( fname, @do_write ).process
         end
       end
 
@@ -114,8 +122,24 @@ module Gravitext
     end
 
     class HeaderProcessor
-      def initialize( fname )
+
+      CMAP = {}
+
+      def self.mk_tag( name, color )
+        tag = name.foreground( color )
+        CMAP[ tag ] = color
+        tag
+      end
+
+      GOOD  = mk_tag( "GOOD ",  :green )
+      NONE  = mk_tag( "NONE ",  :red )
+      DATE  = mk_tag( "DATE ",  :cyan )
+      EMPTY = mk_tag( "EMPTY", :yellow )
+      WROTE = mk_tag( "WROTE", :yellow )
+
+      def initialize( fname, do_write = false )
         @cpos = 0
+        @do_write = do_write
         @fname = fname
         @format = case fname
                   when /\.java$/
@@ -131,17 +155,25 @@ module Gravitext
       end
 
       def process
-        puts @fname #FIXME
+        state = GOOD
         @lines = IO.readlines( @fname )
-        unless @lines.empty?
+        if @lines.empty?
+          state = EMPTY
+        else
           scan_prolog
           if find_copyright
           else
-            insert_header
-            #FIXME puts "write!"
-            rewrite_file
+            if @do_write
+              insert_header
+              rewrite_file
+              state = WROTE
+            else
+              state = NONE
+            end
           end
         end
+        puts( "%s %s" %
+              [ state, @fname.dup.foreground( CMAP[ state ] ) ] )
       end
 
       def rewrite_file
