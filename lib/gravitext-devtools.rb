@@ -4,6 +4,40 @@ require 'optparse'
 module Gravitext
   module DevTools
 
+    def self.configure
+      yield Gravitext::DevTools::Config
+    end
+
+    def self.load_config_from_pwd
+      count = 0
+      pwd = File.expand_path( Dir.pwd )
+      while( File.directory?( pwd ) )
+        cfile = File.join( pwd, '.gt-config' )
+        if File.exist?( cfile )
+          Config::load_config( cfile )
+          break
+        end
+        break if File.exist?( File.join( pwd, '.git' ) )
+        pwd = pwd.dirname
+        break if ( count += 1 ) > 4
+        break if pwd == '/'
+      end
+    end
+
+    module Config
+
+      def self.load_config( file )
+        puts "Loading config #{file}."
+        load file
+      end
+
+      def self.method_missing( method, *arguments, &block )
+        ccall = caller[0]
+        puts "Method %s from %s not defined, ignored" % [ method, ccall ]
+      end
+    end
+
+
     class GitFileLister
 
       # Exclusions to the list expressed in various ways

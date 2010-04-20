@@ -1,25 +1,7 @@
 #!/usr/bin/ruby
 
-require 'fileutils'
-include FileUtils
+$LOAD_PATH.unshift File.join( File.dirname( __FILE__ ), "..", "lib" )
 
-HDIR = File.dirname( __FILE__ )
+require 'gravitext-devtools/header_writer'
 
-for fname in ARGV
-  if system( %q{egrep -q '^[ \*#]+Copyright ' } + fname  )
-    puts "#{fname} already has Copyright header."
-  else
-    hfile = HDIR + '/' +
-      if fname =~ /\.java$/
-        'header.java'
-      elsif fname =~ /\.xml$/
-        'header.xml'
-      else
-        'header.rb'
-      end
-    mv( fname, "#{fname}.orig" )
-    system( "cat #{hfile} #{fname}.orig > #{fname}" )
-    rm( "#{fname}.orig" )
-    puts "#{fname} : header applied."
-  end
-end
+Gravitext::DevTools::HeaderWriter.new.run

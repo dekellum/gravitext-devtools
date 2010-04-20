@@ -1,7 +1,5 @@
 
 require 'gravitext-devtools'
-
-require 'optparse'
 require 'fileutils'
 
 module Gravitext
