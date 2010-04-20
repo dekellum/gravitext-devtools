@@ -167,6 +167,7 @@ module Gravitext
                     :txt
                   end
         @state = :first
+        @writer = HeaderWriter.instance
       end
 
       def process
@@ -177,6 +178,14 @@ module Gravitext
         else
           scan_prolog
           if find_copyright
+            if !check_copyright
+              if @do_write
+                rewrite_file
+                state = WROTE
+              else
+                state = DATE
+              end
+            end
           else
             if @do_write
               insert_header
@@ -246,8 +255,26 @@ module Gravitext
         @cline
       end
 
+      def check_copyright
+        passes =
+          if @lines[@cline] =~ /Copyright \(c\) (\d{4})(-(\d{4}))? (\S.*)\s*$/
+            ldate = $3 || $1 #last date
+            ldate && ( ldate == Time.now.year.to_s ) && ( $4 == @writer.holder )
+          else
+            false
+          end
+
+        unless passes
+          start = @lines[@cline].match( /^.*Copyright/ )
+          @lines[@cline] = [ start, "(c)",
+                             @writer.years, @writer.holder ].join( ' ' )
+        end
+
+        passes
+      end
+
       def insert_header
-        header = HeaderWriter.instance.cached_header( @format )
+        header = @writer.cached_header( @format )
         @lines.insert( @cpos, *header )
         @cpos += header.length
         # Insert an extra line break if needed.
