@@ -284,7 +284,9 @@ module Gravitext
         @lines.insert( @cpos, *header )
         @cpos += header.length
         # Insert an extra line break if needed.
-        @lines.insert( @cpos, "" ) unless @lines[ @cpos ] =~ /^\s*$/
+        unless @lines[ @cpos ] =~ /^\s*$/ || @format == :xml
+          @lines.insert( @cpos, "" )
+        end
       end
 
     end
