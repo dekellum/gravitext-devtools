@@ -57,7 +57,6 @@ module Gravitext
                         'History.rdoc',
                         'Manifest.static',
                         'Manifest.txt',
-                        'README.rdoc',
                         'lib/**/*.jar',
                         'Rakefile' ]
 
@@ -205,9 +204,14 @@ module Gravitext
       end
 
       def scan_prolog
-        if @lines[0] =~ /^#\!([^\s]+)/
 
+        if @lines[0] =~ /^#\!([^\s]+)/
           @format = :rb if $1 =~ /ruby$/
+          @cpos = 1
+        end
+
+        if @lines[0] =~ /^<?xml/
+          @format = :xml
           @cpos = 1
         end
 
@@ -234,15 +238,17 @@ module Gravitext
             when /^#\s+Copyright/
               @cline = i
               break
+            when /^\s*$/
             when /^\s*[^#]/
               break
             end
           when :java
             case line
-            when /^\*\s+Copyright/
+            when /^\s*\*\s+Copyright/
               @cline = i
               break
-            when /^\s*[^\*]/
+            when /^\s*$/
+            when /^\s*[^\/\*]/
               break
             end
           else

@@ -34,7 +34,7 @@ module Gravitext
           break
         end
         break if File.exist?( File.join( pwd, '.git' ) )
-        pwd = pwd.dirname
+        pwd = File.dirname( pwd )
         break if ( count += 1 ) > 4
         break if pwd == '/'
       end
