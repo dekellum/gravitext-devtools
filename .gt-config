@@ -2,10 +2,10 @@
 
 Gravitext::DevTools.configure do |c|
 
-  c.header do |l|
-    l.holder = "David Kellum"
-    l.inception = 2008
-    l.license = :apache
+  c.header do |h|
+    h.holder = "David Kellum"
+    h.inception = 2008
+    h.license = :apache
+    h.exclusions << /^templates/
   end
-
 end

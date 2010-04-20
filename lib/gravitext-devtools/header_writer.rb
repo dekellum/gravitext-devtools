@@ -21,6 +21,7 @@ module Gravitext
       attr_accessor :holder
       attr_accessor :inception
       attr_accessor :license
+      attr_accessor :exclusions
 
       class << self
         attr_accessor :instance
@@ -33,10 +34,14 @@ module Gravitext
 
         @git_lister = GitFileLister.new
 
-        @git_lister.exclusions = [ %r{(^|/).gitignore$},
-                                   %r{(^|/).gt-config$},
-                                   'lib/**/*.jar',
-                                   'Manifest.static' ]
+        @exclusions = [ %r{(^|/).gitignore$},
+                        %r{(^|/).gt-config$},
+                        'History.rdoc',
+                        'Manifest.static',
+                        'Manifest.txt',
+                        'README.rdoc',
+                        'lib/**/*.jar',
+                        'Rakefile' ]
 
         @cached_header = {}
 
@@ -59,6 +64,9 @@ module Gravitext
         parse_options( args )
 
         Gravitext::DevTools.load_config_from_pwd
+
+        @git_lister.exclusions = @exclusions
+        # puts @exclusions.inspect
 
         files = @git_lister.files
 
@@ -114,9 +122,8 @@ module Gravitext
                     :java
                   when /\.xml$/
                     :xml
-                  when /\.rb$/, /(.*\/)?[^.]+/
+                  when /\.rb$/
                     :rb
-                  # /\.rdoc$/
                   else
                     :txt
                   end
@@ -124,12 +131,14 @@ module Gravitext
       end
 
       def process
+        puts @fname #FIXME
         @lines = IO.readlines( @fname )
         unless @lines.empty?
           scan_prolog
           if find_copyright
           else
             insert_header
+            #FIXME puts "write!"
             rewrite_file
           end
         end
@@ -140,7 +149,7 @@ module Gravitext
       end
 
       def scan_prolog
-        if @lines[0] =~ /^#!([^ ]+)/
+        if @lines[0] =~ /^#\!([^\s]+)/
 
           @format = :rb if $1 =~ /ruby$/
           @cpos = 1
@@ -193,6 +202,9 @@ module Gravitext
       def insert_header
         header = HeaderWriter.instance.cached_header( @format )
         @lines.insert( @cpos, *header )
+        @cpos += header.length
+        # Insert an extra line break if needed.
+        @lines.insert( @cpos, "" ) unless @lines[ @cpos ] =~ /^\s*$/
       end
 
     end
