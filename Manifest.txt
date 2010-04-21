@@ -15,3 +15,4 @@ templates/format/format.txt
 templates/format/format.xml
 templates/license/apache
 templates/license/bsd
+templates/license/mit
