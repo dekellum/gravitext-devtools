@@ -52,13 +52,16 @@ module Gravitext
 
         @git_lister = GitFileLister.new
 
-        @exclusions = [ %r{(^|/).gitignore$},
-                        %r{(^|/).gt-config$},
-                        'History.rdoc',
-                        'Manifest.static',
-                        'Manifest.txt',
-                        'lib/**/*.jar',
-                        'Rakefile' ]
+        @exclusions = [ '**/.gitignore',
+                        '**/.gt-config',
+                        '**/History.rdoc',
+                        '**/History.txt',
+                        '**/Manifest.static',
+                        '**/Manifest.txt',
+                        '**/*.jar',
+                        '**/Rakefile',
+                        '**/pom.xml',
+                        '**/assembly.xml']
 
         @cached_header = {}
 
