@@ -158,9 +158,9 @@ module Gravitext
         @do_write = do_write
         @fname = fname
         @format = case fname
-                  when /\.java$/
+                  when /\.(java|c|h)$/
                     :java
-                  when /\.xml$/
+                  when /\.(xml|htm(l?))$/
                     :xml
                   when /\.rb$/
                     :rb
