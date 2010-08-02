@@ -1,2 +1,5 @@
+=== 1.0.1 (2010-8-1)
+* Include missing rainbow dependency.
+
 === 1.0.0 (2010-4-21)
 * Initial release.
