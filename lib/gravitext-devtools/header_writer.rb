@@ -39,6 +39,7 @@ module Gravitext
       attr_accessor :inception
       attr_accessor :license
       attr_accessor :exclusions
+      attr_accessor :inclusions
 
       class << self
         attr_accessor :instance
@@ -52,6 +53,7 @@ module Gravitext
 
         @git_lister = GitFileLister.new
 
+        @inclusions = []
         @exclusions = [ '**/.gitignore',
                         '**/.gt-config',
                         '**/History.rdoc',
@@ -90,13 +92,10 @@ module Gravitext
 
         Gravitext::DevTools.load_config_from_pwd
 
+        @git_lister.inclusions = @inclusions
         @git_lister.exclusions = @exclusions
-        # puts @exclusions.inspect
 
         files = @git_lister.files
-
-        # puts cached_header( :rb )
-        # exit
 
         files.each do |fname|
           HeaderProcessor.new( fname, @do_write ).process
@@ -159,9 +158,9 @@ module Gravitext
         @do_write = do_write
         @fname = fname
         @format = case fname
-                  when /\.java$/
+                  when /\.(java|c|h)$/
                     :java
-                  when /\.xml$/
+                  when /\.(xml|htm(l?))$/
                     :xml
                   when /\.rb$/
                     :rb
