@@ -1,4 +1,6 @@
 === 1.1.0 (TBD)
+* Add support for header inclusion files.
+* Add new gt-count utility.
 
 === 1.0.1 (2010-8-1)
 * Include missing rainbow dependency.
