@@ -44,13 +44,14 @@ module Gravitext
 
         parse_options( args )
 
+        @git_lister.exclusions = []
         git_files = @git_lister.files
 
         show_count_line( "LANG/FILE", "LINES", "CODE" )
         total_lines = total_code = 0
 
-        map = [ [ 'java', [ '**/*.java' ] ],
-                [ 'ruby', [ '**/*.rb', '**/bin/*', '**/init/*'] ] ]
+        map = [ [ 'JAVA', [ '**/*.java' ] ],
+                [ 'RUBY', [ '**/*.rb', '**/bin/*', '**/init/*'] ] ]
 
         map.each do | lang, fpats |
           files = git_files.select { |f| @git_lister.match?( fpats, f ) }
