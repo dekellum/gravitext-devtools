@@ -17,8 +17,6 @@
 
 $LOAD_PATH.unshift File.join( File.dirname( __FILE__ ), "..", "lib" )
 
-require 'rubygems'
-
 require 'gravitext-devtools/line_counter'
 
 Gravitext::DevTools::LineCounter.new.run

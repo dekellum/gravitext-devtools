@@ -17,9 +17,6 @@
 require 'gravitext-devtools'
 require 'fileutils'
 
-# Using this for FileList
-require 'rake'
-
 module Gravitext
   module DevTools
 
@@ -52,12 +49,11 @@ module Gravitext
         show_count_line( "LANG/FILE", "LINES", "CODE" )
         total_lines = total_code = 0
 
-        map = [ [ 'java',
-                  git_files & FileList['**/*.java'] ],
-                [ 'ruby',
-                  git_files & FileList['**/*.rb', '**/bin/*', '**/init/*'] ] ]
+        map = [ [ 'java', [ '**/*.java' ] ],
+                [ 'ruby', [ '**/*.rb', '**/bin/*', '**/init/*'] ] ]
 
-        map.each do | lang,files |
+        map.each do | lang, fpats |
+          files = git_files.select { |f| @git_lister.match?( fpats, f ) }
           lines, codelines = count_files( files )
           show_count_line( lang, lines, codelines )
           total_lines += lines
