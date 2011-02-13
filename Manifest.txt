@@ -3,11 +3,13 @@ Manifest.txt
 README.rdoc
 Rakefile
 bin/gt-cleanws
+bin/gt-count
 bin/gt-header
 bin/gt-manifest
 lib/gravitext-devtools/base.rb
 lib/gravitext-devtools.rb
 lib/gravitext-devtools/header_writer.rb
+lib/gravitext-devtools/line_counter.rb
 lib/gravitext-devtools/manifest_writer.rb
 templates/format/format.java
 templates/format/format.rb
