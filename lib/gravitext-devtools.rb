@@ -55,6 +55,10 @@ module Gravitext
 
     class GitFileLister
 
+      # Inclusions to the list expressed in various ways
+      # Array<Regexp|Proc|String>
+      attr_accessor :inclusions
+
       # Exclusions to the list expressed in various ways
       # Array<Regexp|Proc|String>
       attr_accessor :exclusions
@@ -75,6 +79,7 @@ module Gravitext
                         %r{(^|/)src(/|$)},     # gt-manifest
                         'lib/**/*.jar',        # all
                         'Manifest.static' ]    # gt-manifest, gt-header
+        @inclusions = []
         @git_flags = []
         @extra_files = []
       end
@@ -107,11 +112,14 @@ module Gravitext
 
         files.map! { |f| f.strip }
         files.uniq!
-        files.reject { |f| exclude?( f ) }
+        unless @inclusions.empty?
+          files = files.select { |f| match?( @inclusions, f ) }
+        end
+        files.reject { |f| match?( @exclusions, f ) }
       end
 
-      def exclude?( fname )
-        @exclusions.any? do |ex|
+      def match?( list, fname )
+        list.any? do |ex|
           case ex
           when Proc
             ex.call( fname )
