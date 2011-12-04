@@ -17,11 +17,25 @@
 require 'gravitext-devtools/base.rb'
 require 'optparse'
 
+require 'rubygems'
+require 'hooker'
+
+module Hooker
+  class << self
+    # Deprecated, use setup_header instead.
+    def header( &block )
+      add( [ :gt, :header ], caller.first, &block )
+    end
+  end
+
+  log_with { |m| puts m }
+end
+
 module Gravitext
   module DevTools
 
-    def self.configure
-      yield Gravitext::DevTools::Config
+    def self.configure( &block )
+      Hooker.with( :gt, &block )
     end
 
     def self.load_config_from_pwd
@@ -30,26 +44,13 @@ module Gravitext
       while( File.directory?( pwd ) )
         cfile = File.join( pwd, '.gt-config' )
         if File.exist?( cfile )
-          Config::load_config( cfile )
+          Hooker.load_file( cfile )
           break
         end
         break if File.exist?( File.join( pwd, '.git' ) )
         pwd = File.dirname( pwd )
         break if ( count += 1 ) > 4
         break if pwd == '/'
-      end
-    end
-
-    module Config
-
-      def self.load_config( file )
-        puts "Loading config #{file}."
-        load file
-      end
-
-      def self.method_missing( method, *arguments, &block )
-        ccall = caller[0]
-        puts "Method %s from %s not defined, ignored" % [ method, ccall ]
       end
     end
 

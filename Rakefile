@@ -11,7 +11,8 @@ t = RJack::TarPit.new( 'gravitext-devtools', Gravitext::DevTools::VERSION )
 
 t.specify do |h|
   h.developer( 'David Kellum', 'dek-oss@gravitext.com' )
-  h.extra_deps << [ 'rainbow', '~> 1.1' ]
+  h.extra_deps += [ [ 'rainbow', '~> 1.1' ],
+                    [ 'hooker',  '~> 1.0.0' ] ]
 end
 
 task :check_history_version do
