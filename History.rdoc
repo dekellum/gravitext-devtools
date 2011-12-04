@@ -1,3 +1,5 @@
+=== 1.2.0 (TBD)
+
 === 1.1.0 (2011-2-13)
 * Add support for header inclusion files.
 * Add new gt-count utility.
