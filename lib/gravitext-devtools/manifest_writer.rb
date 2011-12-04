@@ -43,7 +43,8 @@ module Gravitext
                         %r{(^|/).gt-config$},
                         %r{(^|/)src(/|$)},
                         'lib/**/*.jar',
-                        'Manifest.static' ]
+                        'Manifest.static',
+                        '*.gemspec' ]
 
         Hooker.apply( [ :gt, :manifest ], self )
       end
