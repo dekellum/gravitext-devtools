@@ -50,7 +50,9 @@ module Gravitext
                         '**/*.jar',
                         '**/Rakefile',
                         '**/pom.xml',
-                        '**/assembly.xml']
+                        '**/assembly.xml',
+                        '*.gemspec',
+                        'Gemfile*' ]
 
         @cached_header = {}
 
