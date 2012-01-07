@@ -19,4 +19,10 @@ $LOAD_PATH.unshift File.join( File.dirname( __FILE__ ), "..", "lib" )
 
 require 'gravitext-devtools/manifest_writer'
 
-Gravitext::DevTools::ManifestWriter.new.run
+module Gravitext::DevTools
+
+  load_config_from_pwd
+
+  ManifestWriter.new.run
+
+end

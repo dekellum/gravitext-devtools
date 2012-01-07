@@ -17,19 +17,10 @@
 require 'gravitext-devtools'
 require 'fileutils'
 require 'erb'
-require 'rubygems'
 require 'rainbow'
 
 module Gravitext
   module DevTools
-
-    module Config
-      def self.header
-        hw = HeaderWriter.instance
-        raise "HeaderWriter not initialized" unless hw
-        yield hw
-      end
-    end
 
     class HeaderWriter
       include FileUtils
@@ -40,10 +31,6 @@ module Gravitext
       attr_accessor :license
       attr_accessor :exclusions
       attr_accessor :inclusions
-
-      class << self
-        attr_accessor :instance
-      end
 
       def initialize
         @verbose = false
@@ -63,11 +50,13 @@ module Gravitext
                         '**/*.jar',
                         '**/Rakefile',
                         '**/pom.xml',
-                        '**/assembly.xml']
+                        '**/assembly.xml',
+                        '*.gemspec',
+                        'Gemfile*' ]
 
         @cached_header = {}
 
-        HeaderWriter.instance = self # The last created
+        Hooker.apply( [ :gt, :header ], self )
       end
 
       def parse_options( args = ARGV )
@@ -90,15 +79,13 @@ module Gravitext
 
         parse_options( args )
 
-        Gravitext::DevTools.load_config_from_pwd
-
         @git_lister.inclusions = @inclusions
         @git_lister.exclusions = @exclusions
 
         files = @git_lister.files
 
         files.each do |fname|
-          HeaderProcessor.new( fname, @do_write ).process
+          HeaderProcessor.new( fname, @do_write, self ).process
         end
       end
 
@@ -153,9 +140,10 @@ module Gravitext
       EMPTY = mk_tag( "EMPTY", :yellow )
       WROTE = mk_tag( "WROTE", :yellow )
 
-      def initialize( fname, do_write = false )
+      def initialize( fname, do_write, writer )
         @cpos = 0
         @do_write = do_write
+        @writer = writer
         @fname = fname
         @format = case fname
                   when /\.(java|c|h)$/
@@ -168,7 +156,6 @@ module Gravitext
                     :txt
                   end
         @state = :first
-        @writer = HeaderWriter.instance
       end
 
       def process

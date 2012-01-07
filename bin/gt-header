@@ -19,4 +19,10 @@ $LOAD_PATH.unshift File.join( File.dirname( __FILE__ ), "..", "lib" )
 
 require 'gravitext-devtools/header_writer'
 
-Gravitext::DevTools::HeaderWriter.new.run
+module Gravitext::DevTools
+
+  load_config_from_pwd
+
+  HeaderWriter.new.run
+
+end

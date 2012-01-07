@@ -29,17 +29,25 @@ module Gravitext
       # Boolean
       attr_accessor :static
 
+      attr_accessor :exclusions
+      attr_accessor :inclusions
+
       def initialize
         @verbose = false
         @static = File.exist?( 'Manifest.static' )
 
         @git_lister = GitFileLister.new
 
-        @git_lister.exclusions = [ %r{(^|/).gitignore$},
-                                   %r{(^|/).gt-config$},
-                                   %r{(^|/)src(/|$)},
-                                   'lib/**/*.jar',
-                                   'Manifest.static' ]
+        @inclusions = []
+        @exclusions = [ %r{(^|/).gitignore$},
+                        %r{(^|/).gt-config$},
+                        %r{(^|/)src(/|$)},
+                        'lib/**/*.jar',
+                        'Manifest.static',
+                        '*.gemspec',
+                        'Gemfile*' ]
+
+        Hooker.apply( [ :gt, :manifest ], self )
       end
 
       def parse_options( args = ARGV )
@@ -60,6 +68,9 @@ module Gravitext
       def run( args = ARGV )
 
         parse_options( args )
+
+        @git_lister.inclusions = @inclusions
+        @git_lister.exclusions = @exclusions
 
         @git_lister.extra_files << 'Manifest.txt' unless @static
         @git_lister.git_flags   << '-c' # Include cached by default
