@@ -51,7 +51,8 @@ module Gravitext
         total_lines = total_code = 0
 
         map = [ [ 'JAVA', [ '**/*.java' ] ],
-                [ 'RUBY', [ '**/*.rb', '**/bin/*', '**/init/*'] ] ]
+                [ 'RUBY', [ '**/*.rb', '**/bin/*', '**/init/*',
+                            '**/Rakefile', '**/Gemfile', '**.gemspec' ] ] ]
 
         map.each do | lang, fpats |
           files = git_files.select { |f| @git_lister.match?( fpats, f ) }
