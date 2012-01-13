@@ -1,4 +1,11 @@
-=== 1.2.0 (TBD)
+=== 1.2.0 (2012-1-13)
+* Use rjack-tarpit ~> 2.0.0 (build)
+* Convert to use of hooker ~> 1.0.0 for config support.
+* Added config support to ManifestWriter, for file
+  inclusion/exclusion like for headers.
+* Add Rakefile, Gemfile, and gemspec and Ruby lines to count.
+* Add assembly, gemspec, and Gemfile* as default header exclusions.
+* Add gemspec and Gemfile* as default manifest exclusions.
 
 === 1.1.0 (2011-2-13)
 * Add support for header inclusion files.
