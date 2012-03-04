@@ -62,9 +62,9 @@ module Gravitext
       def parse_options( args = ARGV )
 
         @git_lister.parse_options( args ) do |opts|
-          opts.banner = "Usage:  gt-manifest [dir|file] ..."
+          opts.banner = "Usage:  gt-header [dir|file] ..."
           opts.on( "-v", "--verbose",
-                   "Output full manifest details" ) do
+                   "Output full details" ) do
             @verbose = true
           end
           opts.on( "-w", "--write",
