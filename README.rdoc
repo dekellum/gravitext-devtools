@@ -10,6 +10,7 @@ gt-manifest:: Maintain manifest from git ls-files minus exclusions.
 gt-cleanws::  Cleanup whitespace in files.
 gt-header::   Add and maintain file license headers.
 gt-count::    Count lines of code by type.
+gt-version::  Bump versions and set release dates.
 
 == License
 
