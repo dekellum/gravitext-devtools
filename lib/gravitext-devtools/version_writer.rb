@@ -27,16 +27,16 @@ module Gravitext
       attr_accessor :verbose
 
       def initialize
-        @verbose = false
-        @do_write = false
+        @debug = false
 
         @git_lister = GitFileLister.new
 
         @version_patterns = {
           :history => [ /History\./, /^=== ([0-9a-z.]+) \((TBD|[0-9\-]+)\)/ ],
-          :pom => [ /pom\.xml$/,  /<version>([0-9a-z.]+)<\/version>/ ],
-          :rb  => [ /(version|base)\.rb$/,
-                    /VERSION\s+=\s+['"]([0-9a-z.]+)['"]/ ]
+          :pom  => [ /pom\.xml$/,  /<version>([0-9a-z.]+)<\/version>/ ],
+          :rb   => [ /(version|base)\.rb$/,
+                     /VERSION\s*=\s*['"]([0-9a-z.]+)['"]/ ],
+          :init => [ /init\//,  /^gem.+,\s*['"]=\s*([0-9a-z.]+)['"]/ ]
         }
 
         Hooker.apply( [ :gt, :version ], self )
@@ -45,14 +45,13 @@ module Gravitext
       def parse_options( args = ARGV )
 
         @git_lister.parse_options( args ) do |opts|
-          opts.banner = "Usage:  gt-version [dir|files] ..."
-          opts.on( "-v", "--verbose", "Output full details" ) do
-            @verbose = true
+          opts.banner = "Usage: gt-version [options] dir|files ..."
+          opts.on( "-d", "-debug", "Output full details" ) do
+            @debug = true
           end
-          opts.on( "-w", "--write", "Write version if needed" ) do
-            @do_write = true
+          opts.on( "-v", "--version V", "Specify new version", String ) do |v|
+            @version = v
           end
-
         end
       end
 
@@ -79,7 +78,51 @@ module Gravitext
                 lines[i] = "=== #{$1} (#{release_date})"
                 rewrite_file( fname, lines )
                 break
+              else
+                lines.insert( i, [ "=== #{@version} (TBD)",
+                                   '' ] )
+                rewrite_file( fname, lines )
+                break
               end
+            end
+          end
+        elsif fname =~ @version_patterns[ :pom ][ 0 ]
+          vline = @version_patterns[ :pom ][ 1 ]
+          lines = IO.readlines( fname )
+          lines.each_index do |i|
+            line = lines[i]
+            if line =~ vline
+              lines[i] =
+                line.sub( /^(\s*<version>)([0-9a-z.]+)(<\/version>)/,
+                          "\\1#{@version}\\3" )
+              rewrite_file( fname, lines )
+              break
+            end
+          end
+        elsif fname =~ @version_patterns[ :rb ][ 0 ]
+          vline = @version_patterns[ :rb ][ 1 ]
+          lines = IO.readlines( fname )
+          lines.each_index do |i|
+            line = lines[i]
+            if line =~ vline
+              lines[i] =
+                line.sub( /^(\s*VERSION\s*=\s*['"])([0-9a-z.]+)/,
+                          "\\1#{@version}" )
+              rewrite_file( fname, lines )
+              break
+            end
+          end
+        elsif fname =~ @version_patterns[ :init ][ 0 ]
+          vline = @version_patterns[ :init ][ 1 ]
+          lines = IO.readlines( fname )
+          lines.each_index do |i|
+            line = lines[i]
+            if line =~ vline
+              lines[i] =
+                line.sub( /^(gem.+,\s*['"]=\s*)([0-9a-z.]+)/,
+                          "\\1#{@version}" )
+              rewrite_file( fname, lines )
+              break
             end
           end
         end
