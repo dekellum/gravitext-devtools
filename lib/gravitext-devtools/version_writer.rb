@@ -89,7 +89,11 @@ module Gravitext
             case type
             when :history
               if $2 == 'TBD'
-                lines[i] = "=== #{$1} (#{release_date})"
+                lines[i] = if @version.nil? || $1 == @version
+                             "=== #{$1} (#{release_date})"
+                           else
+                             "=== #{@version} (TBD)"
+                           end
               else
                 lines.insert( i, [ "=== #{@version} (TBD)", '' ] )
               end
