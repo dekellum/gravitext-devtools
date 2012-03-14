@@ -90,7 +90,7 @@ module Gravitext
             when :pom
               lines[i] = line.sub( /^(\s*<version>)([0-9a-z.]+)(<\/version>)/,
                                    "\\1#{@version}\\3" )
-              adjust_pom_local( lines, i+1 )
+              adjust_pom_local( lines, i+1 ) if @local_dep_prefix
             when :rb
               lines[i] = line.sub( /^(\s*VERSION\s*=\s*['"])([0-9a-z.]+)/,
                                    "\\1#{@version}" )
@@ -98,7 +98,7 @@ module Gravitext
               lines[i] = line.sub( /^(gem.+,\s*['"]=\s*)([0-9a-z.]+)/,
                                    "\\1#{@version}" )
             when :gemspec
-              adjust_gemspec_local( lines, i+1 )
+              adjust_gemspec_local( lines, i+1 ) if @local_dep_prefix
             end
             break
           end
