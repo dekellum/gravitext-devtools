@@ -24,16 +24,18 @@ module Gravitext
     class VersionWriter
       include FileUtils
 
-      attr_accessor :verbose
-
-
-      class HistoryFile
-      end
+      attr_accessor :local_dep_prefix
+      attr_accessor :exclusions
+      attr_accessor :inclusions
+      attr_accessor :patterns
 
       def initialize
 
         @local_dep_prefix = nil
+
         @git_lister = GitFileLister.new
+        @inclusions = []
+        @exclusions = @git_lister.exclusions.dup
 
         @patterns = {
           :history => [ /History\./,
@@ -52,6 +54,7 @@ module Gravitext
       end
 
       def parse_options( args = ARGV )
+
         @git_lister.parse_options( args ) do |opts|
           opts.banner = "Usage: gt-version [options] dir|files ..."
           opts.on( "-v", "--version V", "Specify new version", String ) do |v|
@@ -67,7 +70,10 @@ module Gravitext
       def run( args = ARGV )
         parse_options( args )
 
-        args.each do |fname|
+        @git_lister.inclusions = @inclusions
+        @git_lister.exclusions = @exclusions
+
+        @git_lister.files.each do |fname|
           process( fname )
         end
       end
