@@ -36,6 +36,7 @@ module Gravitext
         @git_lister = GitFileLister.new
         @inclusions = []
         @exclusions = @git_lister.exclusions.dup
+        @version = nil
 
         @patterns = {
           :history => [ /History\./,
@@ -81,6 +82,10 @@ module Gravitext
       def process( fname )
         type, (_,vline) = @patterns.find { |_,(fp,_)| fname =~ fp }
         return false unless type
+
+        # With no version specified, only process history for release date
+        return false unless @version || type == :history
+
         lines = IO.readlines( fname )
         first_match = true
         lines.each_index do |i|
