@@ -147,7 +147,7 @@ class CleanWS
 
         fout = @do_write ? open( ofile, 'w' ) : @fout
 
-        result = open( ifile, 'r' ) do |fin|
+        result = open( ifile, 'rb' ) do |fin|
           filter( fin, fout )
         end
 

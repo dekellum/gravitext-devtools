@@ -69,7 +69,7 @@ module Gravitext
         lines = codelines = 0
         is_java = ( filename =~ /\.java$/ )
 
-        open( filename, 'r' ) { |f|
+        open( filename, 'rb' ) { |f|
           f.each do |line|
             lines += 1
             next if line =~ /^\s*$/
