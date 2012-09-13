@@ -116,7 +116,8 @@ module Gravitext
       end
 
       def expand( template, bnd )
-        ERB.new( template, nil, '%' ).result( bnd ).map { |l| l.rstrip }
+        ERB.new( template, nil, '%' ).result( bnd ).
+          split( $/ ).map { |l| l.rstrip }
       end
 
       def years
