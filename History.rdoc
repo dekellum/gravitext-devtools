@@ -1,4 +1,7 @@
 === 1.3.0 (TBD)
+* Add gt-version script for aiding common version bump,date tasks.
+* Fix gt-header usage text
+* Ruby 1.9/charset relates fixes
 
 === 1.2.0 (2012-1-13)
 * Use rjack-tarpit ~> 2.0.0 (build)
